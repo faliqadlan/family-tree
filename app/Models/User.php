@@ -41,6 +41,12 @@ class User extends Authenticatable implements FilamentUser
         'remember_token',
     ];
 
+    protected $attributes = [
+        'role' => 'member',
+        'is_stub' => false,
+        'is_deceased' => false,
+    ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -93,7 +99,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->isSuperAdmin() || $this->isEventCommitteeMember();
+        return $this->isSuperAdmin();
     }
 
     public function isSuperAdmin(): bool
