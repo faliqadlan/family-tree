@@ -9,7 +9,6 @@ This repository is a single Laravel monolith with:
 
 - Inertia + React web interface (Breeze scaffolding)
 - REST API endpoints under `/api/*`
-- No Filament admin panel
 
 ## Tech Stack
 
