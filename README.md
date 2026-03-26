@@ -1,17 +1,22 @@
-# Silsilah Keluarga API
+# Silsilah Keluarga Monolith (Web + API)
 
 Privacy-first family tree backend built with Laravel, using a hybrid data architecture:
 
 - MySQL (Eloquent) for transactional data
 - Neo4j for relationship graph traversal
 
-This repository is now API-only (no Filament admin panel, no Blade UI rendering).
+This repository is a single Laravel monolith with:
+
+- Inertia + React web interface (Breeze scaffolding)
+- REST API endpoints under `/api/*`
+- No Filament admin panel
 
 ## Tech Stack
 
 - PHP 8.2+
 - Laravel 12
-- Laravel Sanctum (stateless token auth)
+- Laravel Sanctum (API auth)
+- Laravel Breeze + Inertia.js + React (web auth UI)
 - Neo4j client: `laudis/neo4j-php-client`
 
 ## Core Features
@@ -24,7 +29,12 @@ This repository is now API-only (no Filament admin panel, no Blade UI rendering)
 
 ## Authentication
 
-Stateless Bearer token flow using Sanctum.
+Two auth flows coexist:
+
+- Session auth (`web` guard) for Inertia/Breeze web pages
+- Sanctum auth (`sanctum` guard) for API routes
+
+Sanctum token flow:
 
 - `POST /api/auth/login`
 - `POST /api/auth/logout` (auth required)
@@ -40,7 +50,7 @@ Example login payload:
 }
 ```
 
-Use returned token:
+Use returned token for external/stateless API clients:
 
 ```http
 Authorization: Bearer {access_token}
@@ -49,6 +59,8 @@ Authorization: Bearer {access_token}
 ## API Endpoints
 
 All endpoints below require `auth:sanctum` unless noted.
+
+When called from the first-party web app, session-backed Sanctum requests are supported.
 
 ### Users
 
@@ -123,5 +135,6 @@ php artisan test
 
 ## Notes
 
-- Responses are JSON-only, including validation/auth/not-found errors.
+- API routes return JSON responses.
+- Web routes render Inertia pages.
 - Existing migrations, models, and Neo4j integration are preserved.

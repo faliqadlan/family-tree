@@ -14,6 +14,7 @@ use App\Services\Contracts\PrivacyEngineInterface;
 use App\Services\Contracts\SmartInvitationServiceInterface;
 use App\Services\PrivacyEngineService;
 use App\Services\SmartInvitationService;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,5 +37,7 @@ class AppServiceProvider extends ServiceProvider
     {
         User::observe(UserObserver::class);
         Profile::observe(ProfileObserver::class);
+
+        Vite::prefetch(concurrency: 3);
     }
 }

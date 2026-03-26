@@ -18,12 +18,25 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
+
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(fn(Request $request, \Throwable $e) => true);
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request, \Throwable $e) => $request->is('api/*') || $request->expectsJson()
+        );
 
         $exceptions->render(function (ValidationException $e, Request $request) {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
             return response()->json([
                 'message' => 'The given data was invalid.',
                 'errors' => $e->errors(),
@@ -31,24 +44,40 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
             return response()->json([
                 'message' => 'Unauthenticated.',
             ], 401);
         });
 
         $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
             return response()->json([
                 'message' => $e->getMessage() ?: 'This action is unauthorized.',
             ], 403);
         });
 
         $exceptions->render(function (ModelNotFoundException $e, Request $request) {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
             return response()->json([
                 'message' => 'Resource not found.',
             ], 404);
         });
 
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if (! ($request->is('api/*') || $request->expectsJson())) {
+                return null;
+            }
+
             return response()->json([
                 'message' => 'Route not found.',
             ], 404);
