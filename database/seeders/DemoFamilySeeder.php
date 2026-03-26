@@ -17,13 +17,15 @@ class DemoFamilySeeder extends Seeder
 {
     public function run(): void
     {
+        $adminName = (string) env('ADMIN_NAME', 'admin');
         $adminEmail = (string) config('auth.super_admin_email', 'admin@example.com');
+        $adminPassword = (string) env('ADMIN_PASSWORD', 'admin');
 
         $admin = User::updateOrCreate(
             ['email' => $adminEmail],
             [
-                'name' => 'Ahmad Yusuf',
-                'password' => Hash::make('Admin123!'),
+                'name' => $adminName,
+                'password' => Hash::make($adminPassword),
                 'role' => 'admin',
                 'is_stub' => false,
                 'is_deceased' => false,
