@@ -68,6 +68,18 @@ class UserResource extends Resource
                         'warning' => 'admin',
                         'gray'    => 'user',
                     ]),
+                Tables\Columns\IconColumn::make('is_stub')
+                    ->label('Stub')
+                    ->boolean()
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make('is_deceased')
+                    ->label('Deceased')
+                    ->boolean()
+                    ->trueColor('danger')
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable()
