@@ -11,6 +11,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/family-tree', [AppController::class, 'familyTree'])->name('family-tree');
     Route::get('/profile-management', [AppController::class, 'profileManagement'])->name('profile.management');
 
+    Route::middleware('super_admin')->group(function () {
+        Route::get('/admin/tools', [AppController::class, 'adminTools'])->name('admin.tools');
+        Route::get('/admin/stub-profiles/template', [AppController::class, 'downloadStubTemplate'])->name('admin.stub-template.download');
+    });
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

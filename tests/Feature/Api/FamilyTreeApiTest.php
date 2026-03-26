@@ -43,7 +43,7 @@ class FamilyTreeApiTest extends TestCase
 
     public function test_descendants_route_returns_profiles_from_graph_uuids(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         Sanctum::actingAs($user);
 
         $this->mock(GraphRepositoryInterface::class, function ($mock): void {
@@ -84,5 +84,14 @@ class FamilyTreeApiTest extends TestCase
             ->assertJsonFragment(['full_name' => 'Descendant B']);
 
         $this->assertCount(2, $items);
+    }
+
+    public function test_non_admin_cannot_query_other_ancestor_branch(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/family-tree/descendants?ancestor_uuid=11111111-1111-4111-8111-111111111111&depth=3')
+            ->assertForbidden();
     }
 }

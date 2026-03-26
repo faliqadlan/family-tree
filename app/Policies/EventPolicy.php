@@ -15,6 +15,10 @@ class EventPolicy
 
     public function view(User $user, Event $event): bool
     {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
         return $event->status !== 'draft' || $this->isCommittee($user, $event) || $user->id === $event->creator_id;
     }
 
@@ -25,16 +29,28 @@ class EventPolicy
 
     public function update(User $user, Event $event): bool
     {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
         return $user->id === $event->creator_id || $this->isCommittee($user, $event);
     }
 
     public function delete(User $user, Event $event): bool
     {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
         return $user->id === $event->creator_id;
     }
 
     public function manageFinances(User $user, Event $event): bool
     {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
         return $this->isCommittee($user, $event, ['coordinator', 'treasurer']);
     }
 

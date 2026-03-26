@@ -19,6 +19,14 @@ class FamilyTreeController extends Controller
     public function descendants(DescendantsRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $user = $request->user();
+
+        if (! $user->isSuperAdmin()) {
+            $allowedAncestor = $user->profile?->graph_node_id;
+
+            abort_unless($allowedAncestor, 403, 'Your account is not linked to a family branch yet.');
+            abort_unless($validated['ancestor_uuid'] === $allowedAncestor, 403, 'You can only access your authorized family branch.');
+        }
 
         $uuids = $this->graph->getDescendantUuids(
             $validated['ancestor_uuid'],

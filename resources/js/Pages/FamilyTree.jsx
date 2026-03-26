@@ -1,9 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 
 export default function FamilyTree({ initialAncestorUuid, defaultDepth }) {
+    const user = usePage().props.auth.user;
+    const isSuperAdmin = Boolean(user?.is_super_admin);
+
     const [ancestorUuid, setAncestorUuid] = useState(initialAncestorUuid ?? '');
     const [depth, setDepth] = useState(defaultDepth ?? 4);
     const [profiles, setProfiles] = useState([]);
@@ -77,9 +80,15 @@ export default function FamilyTree({ initialAncestorUuid, defaultDepth }) {
                                     onChange={(event) =>
                                         setAncestorUuid(event.target.value)
                                     }
+                                    disabled={!isSuperAdmin}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                                 />
+                                {!isSuperAdmin && (
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Your branch is fixed to your linked profile.
+                                    </p>
+                                )}
                             </div>
 
                             <div>

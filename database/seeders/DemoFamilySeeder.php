@@ -17,8 +17,10 @@ class DemoFamilySeeder extends Seeder
 {
     public function run(): void
     {
+        $adminEmail = (string) config('auth.super_admin_email', 'admin@example.com');
+
         $admin = User::updateOrCreate(
-            ['email' => 'admin@silsilah.local'],
+            ['email' => $adminEmail],
             [
                 'name' => 'Ahmad Yusuf',
                 'password' => Hash::make('Admin123!'),
@@ -85,6 +87,17 @@ class DemoFamilySeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             ),
+            'faliq' => User::updateOrCreate(
+                ['email' => 'faliqadlan67@gmail.com'],
+                [
+                    'name' => 'Faliq Adlan',
+                    'password' => Hash::make('password'),
+                    'role' => 'user',
+                    'is_stub' => false,
+                    'is_deceased' => false,
+                    'email_verified_at' => now(),
+                ]
+            ),
         ];
 
         $this->syncProfile($admin, [
@@ -140,6 +153,16 @@ class DemoFamilySeeder extends Seeder
             'place_of_birth' => 'Depok',
             'father_name' => 'Ahmad Yusuf',
             'mother_name' => 'Lina Kartika',
+        ]);
+
+        $this->syncProfile($users['faliq'], [
+            'full_name' => 'Faliq Adlan',
+            'gender' => 'male',
+            'date_of_birth' => '2014-02-17',
+            'place_of_birth' => 'Jakarta',
+            'father_name' => 'Rahman Yusuf',
+            'mother_name' => 'Nur Aisyah',
+            'bio' => 'Akun demo member untuk pengujian akses cabang keluarga.',
         ]);
 
         $importRows = [
@@ -256,6 +279,7 @@ class DemoFamilySeeder extends Seeder
             ['user_id' => $users['ali']->id, 'status' => 'maybe', 'pax' => 1, 'note' => 'Menunggu jadwal sekolah.'],
             ['user_id' => $users['nurul']->id, 'status' => 'pending', 'pax' => 1, 'note' => null],
             ['user_id' => $users['zaid']->id, 'status' => 'not_attending', 'pax' => 1, 'note' => 'Sedang ujian.'],
+            ['user_id' => $users['faliq']->id, 'status' => 'attending', 'pax' => 2, 'note' => 'Datang bersama orang tua.'],
         ];
 
         foreach ($rsvpPayloads as $payload) {

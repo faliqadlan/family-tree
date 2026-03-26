@@ -98,6 +98,12 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
+        $superAdminEmail = trim((string) config('auth.super_admin_email', ''));
+
+        if ($superAdminEmail !== '' && is_string($this->email) && strcasecmp($this->email, $superAdminEmail) === 0) {
+            return true;
+        }
+
         return $this->role === 'admin';
     }
 

@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 
-export default function Dashboard({ stats }) {
+export default function Dashboard({ stats, isSuperAdmin }) {
     const [events, setEvents] = useState([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
     const [eventsError, setEventsError] = useState('');
@@ -43,7 +43,7 @@ export default function Dashboard({ stats }) {
         <AuthenticatedLayout
             header={
                 <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Dashboard
+                    {isSuperAdmin ? 'Admin Dashboard' : 'Member Dashboard'}
                 </h2>
             }
         >
@@ -66,13 +66,48 @@ export default function Dashboard({ stats }) {
                         </div>
                         <div className="rounded-lg bg-white p-6 shadow-sm">
                             <p className="text-sm text-gray-500">
-                                Pending Access Requests
+                                {isSuperAdmin
+                                    ? 'All Access Requests'
+                                    : 'Pending Access Requests'}
                             </p>
                             <p className="mt-2 text-3xl font-semibold text-gray-900">
-                                {stats?.pendingAccessRequests ?? 0}
+                                {isSuperAdmin
+                                    ? (stats?.allAccessRequests ?? 0)
+                                    : (stats?.pendingAccessRequests ?? 0)}
                             </p>
                         </div>
                     </div>
+
+                    {isSuperAdmin && (
+                        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-6">
+                            <h3 className="text-lg font-semibold text-emerald-900">
+                                Super Admin Access
+                            </h3>
+                            <p className="mt-2 text-sm text-emerald-800">
+                                You have full control of users, profiles, access requests, events, RSVPs, contributions, and family-tree branches.
+                            </p>
+                            <p className="mt-3 text-sm text-emerald-900">
+                                Total Users: <span className="font-semibold">{stats?.totalUsers ?? 0}</span>
+                            </p>
+                            <a
+                                href={route('admin.tools')}
+                                className="mt-4 inline-flex items-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+                            >
+                                Open Admin Tools
+                            </a>
+                        </div>
+                    )}
+
+                    {!isSuperAdmin && (
+                        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-6">
+                            <h3 className="text-lg font-semibold text-blue-900">
+                                Member Access Scope
+                            </h3>
+                            <p className="mt-2 text-sm text-blue-800">
+                                You can manage your own profile, view your permitted family branch, RSVP to events, contribute funds, and submit access requests.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-200 p-6">

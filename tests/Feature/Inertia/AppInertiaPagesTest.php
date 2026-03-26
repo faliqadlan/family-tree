@@ -18,6 +18,8 @@ class AppInertiaPagesTest extends TestCase
     {
         parent::setUp();
 
+        $this->withoutVite();
+
         $this->mock(GraphRepositoryInterface::class, function ($mock): void {
             $mock->shouldReceive('ensurePersonNode')->andReturn([]);
             $mock->shouldReceive('linkPersons')->andReturnNull();
@@ -117,6 +119,29 @@ class AppInertiaPagesTest extends TestCase
                 ->where('mustVerifyEmail', false)
                 ->where('status', null)
             );
+    }
+
+    public function test_admin_tools_page_is_accessible_to_super_admin(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->get('/admin/tools');
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('AdminTools')
+                ->has('templateDownloadUrl')
+            );
+    }
+
+    public function test_admin_tools_page_is_forbidden_for_non_admin(): void
+    {
+        $member = User::factory()->create(['role' => 'member']);
+
+        $this->actingAs($member)
+            ->get('/admin/tools')
+            ->assertForbidden();
     }
 
     public function test_guest_is_redirected_from_protected_inertia_routes(): void
