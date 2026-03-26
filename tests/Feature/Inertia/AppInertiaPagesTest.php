@@ -78,7 +78,6 @@ class AppInertiaPagesTest extends TestCase
     public function test_family_tree_page_renders_with_expected_props(): void
     {
         $user = User::factory()->create();
-        $user->load('profile');
 
         $response = $this->actingAs($user)->get('/family-tree');
 
@@ -86,8 +85,6 @@ class AppInertiaPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('FamilyTree')
-                ->where('defaultDepth', 4)
-                ->where('initialAncestorUuid', $user->profile?->graph_node_id)
             );
     }
 

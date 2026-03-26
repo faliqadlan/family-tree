@@ -95,4 +95,18 @@ class PrivacyEngineServiceTest extends TestCase
         $this->assertEquals('***', $sanitized['phone']);
         $this->assertNull($sanitized['address']);
     }
+
+    public function test_super_admin_can_see_private_fields(): void
+    {
+        $owner = User::factory()->create(['role' => 'user']);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $profile = Profile::factory()->create([
+            'user_id' => $owner->id,
+            'phone' => '081234567890',
+            'phone_privacy' => 'private',
+        ]);
+
+        $this->assertTrue($this->engine->canViewField($profile, $admin, 'phone'));
+    }
 }

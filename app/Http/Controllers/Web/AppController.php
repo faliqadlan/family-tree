@@ -51,10 +51,7 @@ class AppController extends Controller
 
     public function familyTree(Request $request): Response
     {
-        return Inertia::render('FamilyTree', [
-            'initialAncestorUuid' => $request->user()?->profile?->graph_node_id,
-            'defaultDepth' => 4,
-        ]);
+        return Inertia::render('FamilyTree');
     }
 
     public function profileManagement(Request $request): Response

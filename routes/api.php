@@ -38,5 +38,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/financial-contributions/{financialContribution}/confirm', [FinancialContributionController::class, 'confirm']);
 
     // Family Tree (Graph Queries)
+    Route::get('/family-tree', [FamilyTreeController::class, 'index']);
     Route::get('/family-tree/descendants', [FamilyTreeController::class, 'descendants']);
 });

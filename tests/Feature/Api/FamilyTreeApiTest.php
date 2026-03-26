@@ -27,8 +27,27 @@ class FamilyTreeApiTest extends TestCase
 
     public function test_descendants_route_requires_authentication(): void
     {
+        $this->getJson('/api/family-tree')->assertUnauthorized();
+
         $this->getJson('/api/family-tree/descendants?ancestor_uuid=98c595ce-7bb4-423a-bc16-c538f7d5be4a')
             ->assertUnauthorized();
+    }
+
+    public function test_family_tree_route_returns_hierarchical_payload(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/family-tree');
+
+        $response
+            ->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'nodes',
+                    'total_nodes',
+                ],
+            ]);
     }
 
     public function test_descendants_route_validates_required_ancestor_uuid(): void
@@ -76,14 +95,11 @@ class FamilyTreeApiTest extends TestCase
 
         $response = $this->getJson('/api/family-tree/descendants?ancestor_uuid=11111111-1111-4111-8111-111111111111&depth=3');
 
-        $items = $response->json('data') ?? $response->json();
-
         $response
             ->assertOk()
+            ->assertJsonCount(2, 'data')
             ->assertJsonFragment(['full_name' => 'Descendant A'])
             ->assertJsonFragment(['full_name' => 'Descendant B']);
-
-        $this->assertCount(2, $items);
     }
 
     public function test_non_admin_cannot_query_other_ancestor_branch(): void

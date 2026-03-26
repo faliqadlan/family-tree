@@ -30,6 +30,10 @@ class PrivacyEngineService implements PrivacyEngineInterface
 
     public function canViewField(Profile $profile, User $viewer, string $field): bool
     {
+        if ($viewer->isSuperAdmin()) {
+            return true;
+        }
+
         // Owner can always see their own data
         if ($profile->user_id === $viewer->id) {
             return true;
