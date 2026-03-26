@@ -2,11 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Filament\Resources\StubProfileResource\Pages\ListStubProfiles;
 use App\Jobs\ImportStubProfilesJob;
 use App\Models\Profile;
 use App\Models\User;
 use App\Repositories\Contracts\GraphRepositoryInterface;
+use App\Support\StubProfileImportParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -133,7 +133,7 @@ class StubProfileTest extends TestCase
         $tmpFile    = tempnam(sys_get_temp_dir(), 'test_csv_') . '.csv';
         file_put_contents($tmpFile, $csvContent);
 
-        $result = ListStubProfiles::parseImportFile($tmpFile, 'family.csv');
+        $result = StubProfileImportParser::parse($tmpFile, 'family.csv');
         $rows   = $result['rows'];
 
         $this->assertCount(2, $rows);
@@ -153,7 +153,7 @@ class StubProfileTest extends TestCase
         $tmpFile = tempnam(sys_get_temp_dir(), 'test_json_') . '.json';
         file_put_contents($tmpFile, json_encode($data));
 
-        $result = ListStubProfiles::parseImportFile($tmpFile, 'family.json');
+        $result = StubProfileImportParser::parse($tmpFile, 'family.json');
         $rows   = $result['rows'];
 
         $this->assertCount(1, $rows);
@@ -169,7 +169,7 @@ class StubProfileTest extends TestCase
         $tmpFile    = tempnam(sys_get_temp_dir(), 'test_csv_skip_') . '.csv';
         file_put_contents($tmpFile, $csvContent);
 
-        $result = ListStubProfiles::parseImportFile($tmpFile, 'family.csv');
+        $result = StubProfileImportParser::parse($tmpFile, 'family.csv');
 
         $this->assertCount(1, $result['rows']);
         $this->assertEquals(1, $result['skipped']);

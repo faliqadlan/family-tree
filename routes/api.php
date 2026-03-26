@@ -1,31 +1,41 @@
 <?php
 
 use App\Http\Controllers\Api\AccessRequestController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\FamilyTreeController;
 use App\Http\Controllers\Api\FinancialContributionController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RsvpController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('auth')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+    });
 
-    // Profiles & Privacy
-    Route::get('/profiles/{profile}', [ProfileController::class, 'show']);
-    Route::patch('/profiles/{profile}', [ProfileController::class, 'update']);
+    Route::apiResource('users', UserController::class);
 
-    // Access Requests (Privacy Handshake)
-    Route::get('/access-requests', [AccessRequestController::class, 'index']);
-    Route::post('/access-requests', [AccessRequestController::class, 'store']);
+    Route::apiResource('profiles', ProfileController::class);
+
+    Route::apiResource('access-requests', AccessRequestController::class)
+        ->parameters(['access-requests' => 'accessRequest']);
     Route::patch('/access-requests/{accessRequest}/respond', [AccessRequestController::class, 'respond']);
 
-    // Events
     Route::apiResource('events', EventController::class);
     Route::post('/events/{event}/dispatch-invitations', [EventController::class, 'dispatchInvitations']);
 
-    // Event Financial Contributions
-    Route::get('/events/{event}/contributions', [FinancialContributionController::class, 'index']);
-    Route::post('/events/{event}/contributions', [FinancialContributionController::class, 'store']);
-    Route::patch('/events/{event}/contributions/{contribution}/confirm', [FinancialContributionController::class, 'confirm']);
+    Route::apiResource('rsvps', RsvpController::class);
+
+    Route::apiResource('financial-contributions', FinancialContributionController::class)
+        ->parameters(['financial-contributions' => 'financialContribution']);
+    Route::patch('/financial-contributions/{financialContribution}/confirm', [FinancialContributionController::class, 'confirm']);
 
     // Family Tree (Graph Queries)
     Route::get('/family-tree/descendants', [FamilyTreeController::class, 'descendants']);

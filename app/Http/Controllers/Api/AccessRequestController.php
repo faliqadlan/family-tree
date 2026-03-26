@@ -3,30 +3,32 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AccessRequest\RespondAccessRequestRequest;
+use App\Http\Requests\AccessRequest\StoreAccessRequestRequest;
+use App\Http\Requests\AccessRequest\UpdateAccessRequestRequest;
+use App\Http\Resources\AccessRequestResource;
 use App\Models\AccessRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AccessRequestController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
-        $requests = AccessRequest::where('target_id', $request->user()->id)
-            ->with('requester')
+        $requests = AccessRequest::where(function ($query) use ($request) {
+            $query->where('target_id', $request->user()->id)
+                ->orWhere('requester_id', $request->user()->id);
+        })
+            ->with(['requester', 'target'])
             ->latest()
             ->paginate(20);
 
-        return response()->json($requests);
+        return AccessRequestResource::collection($requests);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreAccessRequestRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'target_id'          => 'required|exists:users,id|different:' . $request->user()->id,
-            'requested_fields'   => 'required|array|min:1',
-            'requested_fields.*' => 'in:phone,email,address,date_of_birth',
-            'requester_message'  => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         $accessRequest = AccessRequest::updateOrCreate(
             ['requester_id' => $request->user()->id, 'target_id' => $validated['target_id']],
@@ -37,17 +39,39 @@ class AccessRequestController extends Controller
             ]
         );
 
-        return response()->json($accessRequest, 201);
+        return response()->json(AccessRequestResource::make($accessRequest->load(['requester', 'target'])), 201);
     }
 
-    public function respond(Request $request, AccessRequest $accessRequest): JsonResponse
+    public function show(Request $request, AccessRequest $accessRequest): JsonResponse
     {
-        abort_if($accessRequest->target_id !== $request->user()->id, 403);
+        abort_unless(
+            $request->user()->isSuperAdmin()
+                || $accessRequest->requester_id === $request->user()->id
+                || $accessRequest->target_id === $request->user()->id,
+            403
+        );
 
-        $validated = $request->validate([
-            'status'          => 'required|in:approved,rejected',
-            'target_response' => 'nullable|string|max:500',
-        ]);
+        return response()->json(AccessRequestResource::make($accessRequest->load(['requester', 'target'])));
+    }
+
+    public function update(UpdateAccessRequestRequest $request, AccessRequest $accessRequest): JsonResponse
+    {
+        abort_unless($accessRequest->requester_id === $request->user()->id, 403);
+        abort_unless($accessRequest->status === 'pending', 422, 'Only pending requests can be updated.');
+
+        $accessRequest->update($request->validated());
+
+        return response()->json(AccessRequestResource::make($accessRequest->fresh()->load(['requester', 'target'])));
+    }
+
+    public function respond(RespondAccessRequestRequest $request, AccessRequest $accessRequest): JsonResponse
+    {
+        abort_unless(
+            $request->user()->isSuperAdmin() || $accessRequest->target_id === $request->user()->id,
+            403
+        );
+
+        $validated = $request->validated();
 
         $accessRequest->update([
             'status'          => $validated['status'],
@@ -55,6 +79,18 @@ class AccessRequestController extends Controller
             'responded_at'    => now(),
         ]);
 
-        return response()->json($accessRequest);
+        return response()->json(AccessRequestResource::make($accessRequest->fresh()->load(['requester', 'target'])));
+    }
+
+    public function destroy(Request $request, AccessRequest $accessRequest): JsonResponse
+    {
+        abort_unless(
+            $request->user()->isSuperAdmin() || $accessRequest->requester_id === $request->user()->id,
+            403
+        );
+
+        $accessRequest->delete();
+
+        return response()->json(null, 204);
     }
 }

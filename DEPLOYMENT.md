@@ -26,26 +26,26 @@ This guide covers deploying **Silsilah Keluarga** to a production server. It is 
 
 ### Minimum Production Server
 
-| Resource | Minimum | Recommended |
-|---|---|---|
-| CPU | 2 vCPU | 4 vCPU |
-| RAM | 4 GB | 8 GB |
-| Disk | 40 GB SSD | 100 GB SSD |
-| OS | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS |
+| Resource | Minimum          | Recommended      |
+| -------- | ---------------- | ---------------- |
+| CPU      | 2 vCPU           | 4 vCPU           |
+| RAM      | 4 GB             | 8 GB             |
+| Disk     | 40 GB SSD        | 100 GB SSD       |
+| OS       | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS |
 
 ### Required Software (bare-metal / VM)
 
-| Software | Version |
-|---|---|
-| PHP | 8.2+ (with extensions: pdo_pgsql, redis, opcache, mbstring, bcmath, xml, curl) |
-| Composer | 2+ |
-| Node.js | 20+ (build step only) |
-| PostgreSQL | 15+ |
-| Neo4j | 5+ |
-| Nginx | 1.24+ |
-| Supervisor | latest |
-| Redis | 7+ (for queues and cache) |
-| Docker + Compose | 24+ / v2 (if using containerised deployment) |
+| Software         | Version                                                                        |
+| ---------------- | ------------------------------------------------------------------------------ |
+| PHP              | 8.2+ (with extensions: pdo_pgsql, redis, opcache, mbstring, bcmath, xml, curl) |
+| Composer         | 2+                                                                             |
+| Node.js          | 20+ (build step only)                                                          |
+| PostgreSQL       | 15+                                                                            |
+| Neo4j            | 5+                                                                             |
+| Nginx            | 1.24+                                                                          |
+| Supervisor       | latest                                                                         |
+| Redis            | 7+ (for queues and cache)                                                      |
+| Docker + Compose | 24+ / v2 (if using containerised deployment)                                   |
 
 ---
 
@@ -57,167 +57,166 @@ Save as `docker-compose.prod.yml` in the project root.
 version: "3.9"
 
 services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: silsilah-keluarga:latest
+        container_name: silsilah_app
+        restart: unless-stopped
+        depends_on:
+            - pgsql
+            - neo4j
+            - redis
+        environment:
+            APP_ENV: production
+            APP_KEY: "${APP_KEY}"
+            APP_URL: "${APP_URL}"
+            DB_CONNECTION: pgsql
+            DB_HOST: pgsql
+            DB_PORT: 5432
+            DB_DATABASE: "${DB_DATABASE}"
+            DB_USERNAME: "${DB_USERNAME}"
+            DB_PASSWORD: "${DB_PASSWORD}"
+            NEO4J_HOST: neo4j
+            NEO4J_PORT: 7687
+            NEO4J_USERNAME: "${NEO4J_USERNAME}"
+            NEO4J_PASSWORD: "${NEO4J_PASSWORD}"
+            NEO4J_DATABASE: neo4j
+            REDIS_HOST: redis
+            CACHE_STORE: redis
+            SESSION_DRIVER: redis
+            QUEUE_CONNECTION: redis
+        volumes:
+            - ./storage:/var/www/html/storage
+        networks:
+            - silsilah_net
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: silsilah-keluarga:latest
-    container_name: silsilah_app
-    restart: unless-stopped
-    depends_on:
-      - pgsql
-      - neo4j
-      - redis
-    environment:
-      APP_ENV: production
-      APP_KEY: "${APP_KEY}"
-      APP_URL: "${APP_URL}"
-      DB_CONNECTION: pgsql
-      DB_HOST: pgsql
-      DB_PORT: 5432
-      DB_DATABASE: "${DB_DATABASE}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
-      NEO4J_HOST: neo4j
-      NEO4J_PORT: 7687
-      NEO4J_USERNAME: "${NEO4J_USERNAME}"
-      NEO4J_PASSWORD: "${NEO4J_PASSWORD}"
-      NEO4J_DATABASE: neo4j
-      REDIS_HOST: redis
-      CACHE_STORE: redis
-      SESSION_DRIVER: redis
-      QUEUE_CONNECTION: redis
-    volumes:
-      - ./storage:/var/www/html/storage
-    networks:
-      - silsilah_net
+    worker:
+        image: silsilah-keluarga:latest
+        container_name: silsilah_worker
+        restart: unless-stopped
+        command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+        depends_on:
+            - app
+            - redis
+        environment:
+            APP_ENV: production
+            APP_KEY: "${APP_KEY}"
+            DB_CONNECTION: pgsql
+            DB_HOST: pgsql
+            DB_PORT: 5432
+            DB_DATABASE: "${DB_DATABASE}"
+            DB_USERNAME: "${DB_USERNAME}"
+            DB_PASSWORD: "${DB_PASSWORD}"
+            NEO4J_HOST: neo4j
+            NEO4J_PORT: 7687
+            NEO4J_USERNAME: "${NEO4J_USERNAME}"
+            NEO4J_PASSWORD: "${NEO4J_PASSWORD}"
+            NEO4J_DATABASE: neo4j
+            REDIS_HOST: redis
+            QUEUE_CONNECTION: redis
+        volumes:
+            - ./storage:/var/www/html/storage
+        networks:
+            - silsilah_net
 
-  worker:
-    image: silsilah-keluarga:latest
-    container_name: silsilah_worker
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-    depends_on:
-      - app
-      - redis
-    environment:
-      APP_ENV: production
-      APP_KEY: "${APP_KEY}"
-      DB_CONNECTION: pgsql
-      DB_HOST: pgsql
-      DB_PORT: 5432
-      DB_DATABASE: "${DB_DATABASE}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
-      NEO4J_HOST: neo4j
-      NEO4J_PORT: 7687
-      NEO4J_USERNAME: "${NEO4J_USERNAME}"
-      NEO4J_PASSWORD: "${NEO4J_PASSWORD}"
-      NEO4J_DATABASE: neo4j
-      REDIS_HOST: redis
-      QUEUE_CONNECTION: redis
-    volumes:
-      - ./storage:/var/www/html/storage
-    networks:
-      - silsilah_net
+    scheduler:
+        image: silsilah-keluarga:latest
+        container_name: silsilah_scheduler
+        restart: unless-stopped
+        command: >
+            sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
+        depends_on:
+            - app
+        environment:
+            APP_ENV: production
+            APP_KEY: "${APP_KEY}"
+            DB_CONNECTION: pgsql
+            DB_HOST: pgsql
+            DB_DATABASE: "${DB_DATABASE}"
+            DB_USERNAME: "${DB_USERNAME}"
+            DB_PASSWORD: "${DB_PASSWORD}"
+            NEO4J_HOST: neo4j
+            NEO4J_PORT: 7687
+            NEO4J_USERNAME: "${NEO4J_USERNAME}"
+            NEO4J_PASSWORD: "${NEO4J_PASSWORD}"
+            REDIS_HOST: redis
+        volumes:
+            - ./storage:/var/www/html/storage
+        networks:
+            - silsilah_net
 
-  scheduler:
-    image: silsilah-keluarga:latest
-    container_name: silsilah_scheduler
-    restart: unless-stopped
-    command: >
-      sh -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
-    depends_on:
-      - app
-    environment:
-      APP_ENV: production
-      APP_KEY: "${APP_KEY}"
-      DB_CONNECTION: pgsql
-      DB_HOST: pgsql
-      DB_DATABASE: "${DB_DATABASE}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
-      NEO4J_HOST: neo4j
-      NEO4J_PORT: 7687
-      NEO4J_USERNAME: "${NEO4J_USERNAME}"
-      NEO4J_PASSWORD: "${NEO4J_PASSWORD}"
-      REDIS_HOST: redis
-    volumes:
-      - ./storage:/var/www/html/storage
-    networks:
-      - silsilah_net
+    pgsql:
+        image: postgres:15-alpine
+        container_name: silsilah_pgsql
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: "${DB_DATABASE}"
+            POSTGRES_USER: "${DB_USERNAME}"
+            POSTGRES_PASSWORD: "${DB_PASSWORD}"
+        volumes:
+            - pgsql_data:/var/lib/postgresql/data
+        networks:
+            - silsilah_net
 
-  pgsql:
-    image: postgres:15-alpine
-    container_name: silsilah_pgsql
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: "${DB_DATABASE}"
-      POSTGRES_USER: "${DB_USERNAME}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-    volumes:
-      - pgsql_data:/var/lib/postgresql/data
-    networks:
-      - silsilah_net
+    neo4j:
+        image: neo4j:5-community
+        container_name: silsilah_neo4j
+        restart: unless-stopped
+        environment:
+            NEO4J_AUTH: "${NEO4J_USERNAME}/${NEO4J_PASSWORD}"
+            NEO4J_PLUGINS: '["apoc"]'
+            NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+            NEO4J_dbms_memory_heap_initial__size: 512m
+            NEO4J_dbms_memory_heap_max__size: 1G
+            NEO4J_dbms_memory_pagecache_size: 512m
+        ports:
+            - "7474:7474" # Neo4j Browser (restrict in production)
+            - "7687:7687" # Bolt protocol
+        volumes:
+            - neo4j_data:/data
+            - neo4j_logs:/logs
+            - neo4j_plugins:/plugins
+        networks:
+            - silsilah_net
 
-  neo4j:
-    image: neo4j:5-community
-    container_name: silsilah_neo4j
-    restart: unless-stopped
-    environment:
-      NEO4J_AUTH: "${NEO4J_USERNAME}/${NEO4J_PASSWORD}"
-      NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
-      NEO4J_dbms_memory_heap_initial__size: 512m
-      NEO4J_dbms_memory_heap_max__size: 1G
-      NEO4J_dbms_memory_pagecache_size: 512m
-    ports:
-      - "7474:7474"   # Neo4j Browser (restrict in production)
-      - "7687:7687"   # Bolt protocol
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-      - neo4j_plugins:/plugins
-    networks:
-      - silsilah_net
+    redis:
+        image: redis:7-alpine
+        container_name: silsilah_redis
+        restart: unless-stopped
+        command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+        volumes:
+            - redis_data:/data
+        networks:
+            - silsilah_net
 
-  redis:
-    image: redis:7-alpine
-    container_name: silsilah_redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
-    volumes:
-      - redis_data:/data
-    networks:
-      - silsilah_net
-
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: silsilah_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./public:/var/www/html/public:ro
-      - ./docker/ssl:/etc/ssl/silsilah:ro
-    depends_on:
-      - app
-    networks:
-      - silsilah_net
+    nginx:
+        image: nginx:1.25-alpine
+        container_name: silsilah_nginx
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+            - ./public:/var/www/html/public:ro
+            - ./docker/ssl:/etc/ssl/silsilah:ro
+        depends_on:
+            - app
+        networks:
+            - silsilah_net
 
 volumes:
-  pgsql_data:
-  neo4j_data:
-  neo4j_logs:
-  neo4j_plugins:
-  redis_data:
+    pgsql_data:
+    neo4j_data:
+    neo4j_logs:
+    neo4j_plugins:
+    redis_data:
 
 networks:
-  silsilah_net:
-    driver: bridge
+    silsilah_net:
+        driver: bridge
 ```
 
 ### Application Dockerfile
@@ -389,10 +388,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 # 4. Run migrations
 docker exec silsilah_app php artisan migrate --force
 
-# 5. Publish Filament assets
-docker exec silsilah_app php artisan filament:assets
-
-# 6. Create first admin user (see Section 10)
+# 5. Create first admin user (see Section 10)
 docker exec -it silsilah_app php artisan tinker
 ```
 
@@ -554,7 +550,7 @@ Or promote an existing user:
 \App\Models\User::where('email', 'admin@example.com')->update(['role' => 'admin']);
 ```
 
-The admin panel is then accessible at `https://silsilahkeluarga.example.com/admin`.
+Use this admin role for privileged API endpoints.
 
 ---
 
@@ -562,11 +558,11 @@ The admin panel is then accessible at `https://silsilahkeluarga.example.com/admi
 
 Add health-check endpoints to your monitoring system (e.g., UptimeRobot, Datadog):
 
-| Check | URL | Expected |
-|---|---|---|
-| Application | `GET /` | HTTP 200 |
-| Admin Panel | `GET /admin/login` | HTTP 200 |
-| Queue (via Horizon or log) | — | no failed jobs |
+| Check                      | URL                    | Expected       |
+| -------------------------- | ---------------------- | -------------- |
+| Application                | `GET /`                | HTTP 200       |
+| API Auth                   | `POST /api/auth/login` | HTTP 200/422   |
+| Queue (via Horizon or log) | —                      | no failed jobs |
 
 Check Neo4j connectivity:
 
@@ -584,42 +580,42 @@ Example workflow (`.github/workflows/deploy.yml`):
 name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
+    push:
+        branches: [main]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.3"
-          extensions: pdo_pgsql, mbstring, bcmath, zip
-      - run: composer install --no-interaction --prefer-dist
-      - run: cp .env.example .env && php artisan key:generate
-      - run: php artisan test --testsuite=Unit
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: "8.3"
+                  extensions: pdo_pgsql, mbstring, bcmath, zip
+            - run: composer install --no-interaction --prefer-dist
+            - run: cp .env.example .env && php artisan key:generate
+            - run: php artisan test --testsuite=Unit
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USER }}
-          key: ${{ secrets.PRODUCTION_SSH_KEY }}
-          script: |
-            cd /var/www/silsilah
-            git pull origin main
-            docker compose -f docker-compose.prod.yml build app
-            docker exec silsilah_app php artisan down --secret="${{ secrets.MAINTENANCE_SECRET }}"
-            docker exec silsilah_app php artisan migrate --force
-            docker exec silsilah_app php artisan optimize:clear
-            docker exec silsilah_app php artisan optimize
-            docker compose -f docker-compose.prod.yml up -d --no-deps app worker scheduler
-            docker exec silsilah_app php artisan up
+    deploy:
+        needs: test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy via SSH
+              uses: appleboy/ssh-action@v1
+              with:
+                  host: ${{ secrets.PRODUCTION_HOST }}
+                  username: ${{ secrets.PRODUCTION_USER }}
+                  key: ${{ secrets.PRODUCTION_SSH_KEY }}
+                  script: |
+                      cd /var/www/silsilah
+                      git pull origin main
+                      docker compose -f docker-compose.prod.yml build app
+                      docker exec silsilah_app php artisan down --secret="${{ secrets.MAINTENANCE_SECRET }}"
+                      docker exec silsilah_app php artisan migrate --force
+                      docker exec silsilah_app php artisan optimize:clear
+                      docker exec silsilah_app php artisan optimize
+                      docker compose -f docker-compose.prod.yml up -d --no-deps app worker scheduler
+                      docker exec silsilah_app php artisan up
 ```
 
 ---
@@ -649,4 +645,4 @@ docker exec silsilah_app php artisan up
 
 ---
 
-*Last updated: 2026-03-26. For issues, open a GitHub issue at [faliqadlan/family-tree](https://github.com/faliqadlan/family-tree).*
+_Last updated: 2026-03-26. For issues, open a GitHub issue at [faliqadlan/family-tree](https://github.com/faliqadlan/family-tree)._
