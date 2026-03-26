@@ -1,5 +1,7 @@
 <?php
 
+$storageRoot = rtrim((string) env('LOCAL_STORAGE_PATH', storage_path('app')), '/');
+
 return [
 
     /*
@@ -32,7 +34,7 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            'root' => $storageRoot . '/private',
             'serve' => true,
             'throw' => false,
             'report' => false,
@@ -40,8 +42,8 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'root' => $storageRoot . '/public',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -74,7 +76,7 @@ return [
     */
 
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        public_path('storage') => $storageRoot . '/public',
     ],
 
 ];

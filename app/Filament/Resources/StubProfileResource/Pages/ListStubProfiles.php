@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Yaml\Yaml;
 
 class ListStubProfiles extends ListRecords
 {
@@ -55,7 +56,7 @@ class ListStubProfiles extends ListRecords
                     $csv = implode(',', $headers) . "\n" . implode(',', $exampleRow) . "\n";
 
                     return response()->streamDownload(
-                        fn () => print($csv),
+                        fn() => print($csv),
                         'family_import_template.csv',
                         ['Content-Type' => 'text/csv']
                     );
@@ -66,8 +67,8 @@ class ListStubProfiles extends ListRecords
                 ->icon('heroicon-o-arrow-up-tray')
                 ->form([
                     FileUpload::make('file')
-                        ->label('Upload File (CSV or JSON)')
-                        ->acceptedFileTypes(['text/csv', 'application/json', 'text/plain'])
+                        ->label('Upload File (CSV, JSON, or YAML)')
+                        ->acceptedFileTypes(['text/csv', 'application/json', 'application/x-yaml', 'text/yaml', 'text/plain'])
                         ->maxSize(5120) // 5 MB in KB
                         ->required()
                         ->disk('local')
@@ -131,7 +132,7 @@ class ListStubProfiles extends ListRecords
     }
 
     /**
-     * Parse a CSV or JSON file and return valid rows and skipped count.
+     * Parse a CSV, JSON, or YAML file and return valid rows and skipped count.
      *
      * @return array{rows: array<int, array<string, mixed>>, skipped: int}
      */
@@ -142,6 +143,16 @@ class ListStubProfiles extends ListRecords
         if ($ext === 'json') {
             $content = file_get_contents($path);
             $decoded = json_decode($content, true);
+
+            return [
+                'rows'    => is_array($decoded) ? $decoded : [],
+                'skipped' => 0,
+            ];
+        }
+
+        if (in_array($ext, ['yaml', 'yml'], true)) {
+            $content = file_get_contents($path);
+            $decoded = Yaml::parse($content);
 
             return [
                 'rows'    => is_array($decoded) ? $decoded : [],

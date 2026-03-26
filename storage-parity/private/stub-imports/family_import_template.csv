@@ -1,0 +1,7 @@
+name,nickname,gender,birth_year,death_year,place_of_birth,father_name,mother_name,is_deceased,bio
+"Abdul Karim","Karim","male","1915","1980","Cirebon","Ibrahim Karim","Siti Rahmah","true","Buyut dari garis ayah."
+"Siti Aminah","Aminah","female","1920","1990","Cirebon","Saleh Iskandar","Zubaidah","true","Buyut dari garis ibu."
+"Haji Yusuf Karim","Pak Yusuf","male","1948","2020","Bandung","Abdul Karim","Siti Aminah","true","Ayah dari Ahmad, Fatimah, dan Rahman."
+"Hajjah Maryam Saleh","Bu Maryam","female","1951","2022","Bandung","Saleh Iskandar","Zubaidah","true","Ibu dari Ahmad, Fatimah, dan Rahman."
+"Nur Aisyah","Aisyah","female","1990","","Bogor","Hadi Pranoto","Rini Mardiyah","false","Istri Rahman Yusuf."
+"Lina Kartika","Lina","female","1987","","Depok","Hadi Santoso","Nani Sulastri","false","Istri Ahmad Yusuf."

@@ -40,7 +40,17 @@ class ImportStubProfilesJob implements ShouldQueue
 
             // UserObserver creates the base profile + Neo4j node.
             // Update the profile with additional fields from the import row.
-            $user->profile()->update([
+            $profile = $user->profile()->first();
+
+            if (! $profile) {
+                Log::warning('ImportStubProfilesJob: profile missing after user creation.', [
+                    'user_id' => $user->id,
+                    'name' => $name,
+                ]);
+                continue;
+            }
+
+            $profile->fill([
                 'full_name'       => $name,
                 'nickname'        => $row['nickname'] ?? null,
                 'gender'          => in_array($row['gender'] ?? '', GenderOptions::VALUES) ? $row['gender'] : null,
@@ -51,6 +61,8 @@ class ImportStubProfilesJob implements ShouldQueue
                 'mother_name'     => $row['mother_name'] ?? null,
                 'bio'             => $row['bio'] ?? null,
             ]);
+
+            $profile->save();
         }
     }
 
