@@ -69,9 +69,16 @@ class Neo4jService
      */
     public function getDescendants(string $ancestorUuid, int $depth = 4): array
     {
+        $safeDepth = max(1, min(10, $depth));
+
+        $query = sprintf(
+            'MATCH (ancestor:Person {uuid: $uuid})-[:FATHER_OF|MOTHER_OF*1..%d]->(descendant:Person) RETURN DISTINCT descendant.uuid AS uuid',
+            $safeDepth
+        );
+
         $result = $this->client->run(
-            'MATCH (ancestor:Person {uuid: $uuid})-[:FATHER_OF|MOTHER_OF*1..$depth]->(descendant:Person) RETURN DISTINCT descendant.uuid AS uuid',
-            ['uuid' => $ancestorUuid, 'depth' => $depth]
+            $query,
+            ['uuid' => $ancestorUuid]
         );
 
         return $result->map(fn($row) => $row->get('uuid'))->toArray();

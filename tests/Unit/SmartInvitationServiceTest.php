@@ -9,24 +9,28 @@ use App\Repositories\Contracts\GraphRepositoryInterface;
 use App\Services\SmartInvitationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class SmartInvitationServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private \Mockery\MockInterface $graph;
+    private GraphRepositoryInterface $graph;
+    private GraphRepositoryInterface&MockInterface $graphMock;
     private SmartInvitationService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->graph = Mockery::mock(GraphRepositoryInterface::class);
-        $this->graph->shouldReceive('ensurePersonNode')->andReturn([])->byDefault();
-        $this->graph->shouldReceive('linkPersons')->andReturnNull()->byDefault();
-        $this->graph->shouldReceive('removePersonNode')->andReturnNull()->byDefault();
-        $this->graph->shouldReceive('getDescendantUuids')->andReturn([])->byDefault();
+        $this->graphMock = Mockery::mock(GraphRepositoryInterface::class);
+        $this->graphMock->shouldReceive('ensurePersonNode')->andReturn([])->byDefault();
+        $this->graphMock->shouldReceive('linkPersons')->andReturnNull()->byDefault();
+        $this->graphMock->shouldReceive('removePersonNode')->andReturnNull()->byDefault();
+        $this->graphMock->shouldReceive('getDescendantUuids')->andReturn([])->byDefault();
+
+        $this->graph = $this->graphMock;
 
         $this->app->instance(GraphRepositoryInterface::class, $this->graph);
 
@@ -75,7 +79,7 @@ class SmartInvitationServiceTest extends TestCase
             'invitation_depth' => 4,
         ]);
 
-        $this->graph->shouldReceive('getDescendantUuids')
+        $this->graphMock->shouldReceive('getDescendantUuids')
             ->once()
             ->with('ancestor-uuid', 4)
             ->andReturn([
@@ -111,7 +115,7 @@ class SmartInvitationServiceTest extends TestCase
             'invitation_depth' => 2,
         ]);
 
-        $this->graph->shouldReceive('getDescendantUuids')
+        $this->graphMock->shouldReceive('getDescendantUuids')
             ->twice()
             ->with('ancestor-dispatch', 2)
             ->andReturn(['cccccccc-cccc-4ccc-8ccc-cccccccccccc']);
